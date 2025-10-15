@@ -29,11 +29,12 @@ def main(n_runs, n_processors, n_steps, n_episodes):
 
     results_path = Path("data/results")
     results_path.mkdir(exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S.%f")
+    timestamp = datetime.now().strftime("%Y-%m-%d %H_%M_%S.%f")
     print(f"Experiment timestamp: {timestamp}\n")
 
     base_args = (n_steps, n_episodes)
     train_args = [base_args + (n_run * 10,) for n_run in range(n_runs)]
+    print(train_args)
 
     if n_processors > 1:
         pool = Pool(n_processors)

@@ -12,11 +12,12 @@ from copy import deepcopy
 from operator import itemgetter
 from collections import defaultdict
 from pathlib import Path
-import dill
 
+import numpy as np
+import torch
+from torch import nn
 
 from environment import Environment
-import numpy as np
 np.seterr(all='raise')
 
 # Uncoment to run stand alone script.
@@ -49,6 +50,7 @@ class ActorCritic(object):
 
         self.w = np.ones(self.n_phi) * (1 / self.n_phi)
         self.theta = np.ones((self.n_nodes, self.n_varphi)) * (1 / self.n_varphi)
+        # TODO: change uniform initialisation
         self.reset()
 
     @property 
@@ -310,3 +312,4 @@ if __name__ == '__main__':
     env.next_step(actions)
 
     ksis = [ac.grad_log_policy(varphi, actions, i) for i in range(n_nodes)]
+

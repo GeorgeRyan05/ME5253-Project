@@ -70,6 +70,7 @@ def adjacency_matrix(n_nodes, n_edges):
     edge_list = [full_edge_list[i] for i in sorted(edge_ids)]
 
     data = (np.ones(len(edge_list), dtype=int), zip(*edge_list))
+    print(f"{n_nodes = }")
     adjacency = csr_matrix(data, dtype=int, shape=(n_nodes, n_nodes)).toarray()
     adjacency = adjacency + adjacency.T
     return adjacency

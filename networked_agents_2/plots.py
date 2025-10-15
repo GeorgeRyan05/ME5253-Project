@@ -288,7 +288,7 @@ def best_actions_plot(best_actions, results_path):
     ax.set_title("best action")
     ax.set_xticks(X)
     # ax.set_xticklabels(labels)
-    ax.legend(loc="upper right")
+    # ax.legend(loc="upper right")
 
     fig.tight_layout()
     file_name = (results_path / "best_actions.pdf").as_posix()
@@ -306,7 +306,7 @@ def best_actions_rewards_plot(best_actions_rewards, results_path):
     ax.set_xlabel("s")
     ax.set_title("Best Team Reward")
     ax.set_xticks(X)
-    ax.legend(loc="upper right")
+    # ax.legend(loc="upper right")
 
     fig.tight_layout()
     file_name = (results_path / "best_team_rewards.pdf").as_posix()

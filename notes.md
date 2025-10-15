@@ -1,0 +1,1 @@
+Change the SemiDeterministicEnvironment, it redefines the reward to be dumb

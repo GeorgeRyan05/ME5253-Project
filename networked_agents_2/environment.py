@@ -22,6 +22,7 @@ from tqdm import tqdm
 from consensus import metropolis_weights_matrix
 from consensus import adjacency_matrix
 
+np.random.seed(0)
 
 # x is a list of zeros and ones.
 def bin2dec(x):
@@ -80,20 +81,22 @@ class Environment(object):
         # Private set of features var_phi(s, a_i)
         # [n_states, n_actions, n_nodes, n_varphi]
         self.VARPHI = uniform(size=(n_states, n_actions, n_nodes, n_varphi))
+        # varphi are the features representing an action for a given state and agent
+        # similar to phi
 
         # 5. Builds a list with every possible edge.
         self.edge_list = [
             (i, j) for i in range(n_nodes - 1) for j in range(i + 1, n_nodes)
         ]
 
-        self.log = defaultdict(list)
-        self.log["n_states"] = n_states
-        self.log["n_actions"] = n_actions
-        self.log["n_nodes"] = n_nodes
-        self.log["n_phi"] = n_phi
-        self.log["n_varphi"] = n_varphi
-        self.log["n_edges"] = 2 * (n_nodes - 1)
-        self.log["seed"] = seed
+        self.log: dict[str, list] = defaultdict(list)
+        # self.log["n_states"] = n_states
+        # self.log["n_actions"] = n_actions
+        # self.log["n_nodes"] = n_nodes
+        # self.log["n_phi"] = n_phi
+        # self.log["n_varphi"] = n_varphi
+        # self.log["n_edges"] = 2 * (n_nodes - 1)
+        # self.log["seed"] = seed
         self.reset()
 
     def reset(self):

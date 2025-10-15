@@ -8,9 +8,12 @@ import numpy as np
 from tqdm import trange
 
 # from environment import Environment
-from environment import SemiDeterministicEnvironment as Environment
+# from environment import SemiDeterministicEnvironment as Environment
+from cooperative_environment import CooperativeNavigationEnvironment
 from dist_ac import DistributedActorCritic
 from ac import ActorCritic
+from ac_non_linear import NonLinearActorCritic
+from dist_ac_non_linear import DistributedActorCriticNonLinear
 
 UPDATE_CENTRALIZED_KEYS = [
     "features",
@@ -23,7 +26,11 @@ UPDATE_DISTRIBUTED_KEYS = UPDATE_CENTRALIZED_KEYS + ["consensus"]
 LOG_KEYS = ["w", "grad_w", "theta", "grad_theta", "scores"]
 
 
-def get_agent(distributed=True):
+def get_agent(distributed=True, non_linear=False):
+    if non_linear:
+        if not distributed:
+            raise NotImplementedError
+        return DistributedActorCriticNonLinear if distributed else NonLinearActorCritic
     return DistributedActorCritic if distributed else ActorCritic
 
 
@@ -84,21 +91,25 @@ def train(n_steps, n_episodes, seed):
     # n_varphi = 5 # actor's features
 
     # Mini problem
-    n_states = 20
-    n_actions = 2
+    # n_states = 20
+    n_actions = 5
     n_nodes = 2
     n_phi = 10
     n_varphi = 5
     variable_graph = True
-    seed = 0
+    # seed = 0
 
     # Instanciate environment
-    env = Environment(
-        n_states=n_states,
-        n_actions=n_actions,
+    # env = Environment(
+    #     n_states=n_states,
+    #     n_actions=n_actions,
+    #     n_nodes=n_nodes,
+    #     n_phi=n_phi,
+    #     n_varphi=n_varphi,
+    #     seed=seed,
+    # )
+    env = CooperativeNavigationEnvironment(
         n_nodes=n_nodes,
-        n_phi=n_phi,
-        n_varphi=n_varphi,
         seed=seed,
     )
 
@@ -108,6 +119,7 @@ def train(n_steps, n_episodes, seed):
     varphi_2 = env.get_varphi(2)  # arbitrary
 
     print("Best action for every state")
+    # TODO: Change environment to non-deterministic
     print(np.arange(n_states))
     print(env.best_actions)
     print(env.max_team_reward)

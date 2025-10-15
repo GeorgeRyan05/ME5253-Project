@@ -15,7 +15,6 @@ from copy import deepcopy
 from operator import itemgetter
 from collections import defaultdict
 from pathlib import Path
-import dill
 from consensus import metropolis_weights_matrix
 
 from environment import Environment
@@ -197,8 +196,7 @@ class DistributedActorCritic(object):
     def v(self, varphi, state, actions, i):
         """Relative value-function
 
-        A version of value-function where the effects of i-agent's
-        have been averaged.
+        Value function computed as expected value of action-value function for policy specified by varphi
 
         Parameters:
         -----------

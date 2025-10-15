@@ -151,8 +151,8 @@ class NetworkedActorCritic:
                 # Clip theta to prevent explosion
                 self.theta[i] = np.clip(self.theta[i], -10, 10)
 
-            # Consensus step: ω^i ← Σ_j C(i,j) · ω̄^j
-            self.omega = self.C @ self.omega_bar
+            # Consensus step: ω^i <- Σ_j C(i,j) · ω^j
+            self.omega = self.C @ self.omega_bar # works for non-linear as well
 
             # Update for next iteration
             state = next_state
