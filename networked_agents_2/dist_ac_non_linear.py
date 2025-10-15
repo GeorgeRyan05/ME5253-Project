@@ -8,10 +8,17 @@ from cooperative_environment import CooperativeNavigationEnvironment
 
 
 class Predictor:
-    def __init__(self, n_phi, n_hidden, n_actions, device) -> None:
+    def __init__(
+        self,
+        n_phi: int,
+        n_nodes: int,
+        n_hidden: int,
+        n_actions: int,
+        device: torch.device,
+    ) -> None:
         self.device = device
         self.actor = nn.Sequential(
-            nn.Linear(n_phi, n_hidden),
+            nn.Linear(2 * n_nodes, n_hidden),
             nn.ReLU(),
             nn.Linear(n_hidden, n_actions),
             nn.Softmax(dim=-1),
@@ -27,17 +34,31 @@ class Predictor:
 
 class DistributedActorCriticNonLinear(DistributedActorCritic):
     n_hidden: int = 24
+    env: CooperativeNavigationEnvironment
 
     def __init__(self, env: CooperativeNavigationEnvironment, device=None):
+        self.env = env
         if not device:
             device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.device = device
-        super(DistributedActorCriticNonLinear, self).__init__(env)
+        self.device = torch.device(device)
+        self.n_actions = env.n_actions
+        self.n_agents = env.n_nodes
+        self.n_phi = 2 * env.n_nodes + env.n_actions
+        self.mu = np.zeros(self.n_agents)
+        # phi is the vector of [state, action]
+        # super(DistributedActorCriticNonLinear, self).__init__(env)
         self.predictors: list[Predictor] = []
         for agent in range(self.n_agents):
             self.predictors.append(
-                Predictor(self.n_phi, self.n_hidden, self.n_actions, self.device)
+                Predictor(
+                    self.n_phi,
+                    self.n_agents,
+                    self.n_hidden,
+                    self.n_actions,
+                    self.device,
+                )
             )
+        self.n_steps = 0
         # Only for ensuring all gradients are zeroed
 
     def update(self, state, actions, rewards, next_state, next_actions, C):
@@ -62,8 +83,11 @@ class DistributedActorCriticNonLinear(DistributedActorCritic):
         """
         # NOTE - varphi should be replaced with phi for these functions, as the actions are handled on the output side, not the input layer
         # 1. Common knowledge at timestep-t
-        phi, varphi = self.env.get_features(state, actions)
-        next_phi, _ = self.env.get_features(next_state, next_actions)
+        action_vec, state_vec = self.env.get_features(state, actions)
+        next_action_vec, next_state_vec = self.env.get_features(
+            next_state, next_actions
+        )
+        # TODO: Won't actually be able to compute next_state, will need to figure that out
 
         # dq = self.grad_q(phi)
         alpha = self.alpha
@@ -75,18 +99,23 @@ class DistributedActorCriticNonLinear(DistributedActorCritic):
         grad_thetas = []
         scores = []
 
-        ws = [self.w.tolist()]
-        thetas = [self.theta.tolist()]
         # wtilde = np.zeros_like(self.w)
         # 2. Iterate agents on the network.
         for i in range(self.n_agents):
             # 2.1 Compute time-difference delta
             with torch.no_grad():
-                delta = rewards[i] - mu[i] + self.q(next_phi, i) - self.q(phi, i)
+                state_action_vec = np.concatenate((state_vec, action_vec[i]))
+
+                delta = (
+                    rewards[i]
+                    - mu[i]
+                    + self.q(next_state_action_vec, i)
+                    - self.q(state_action_vec, i)
+                )
             predictor = self.predictors[i]
             predictor._critic_optimizer.zero_grad()
             predictor._actor_optimizer.zero_grad()
-            q = self._q(phi, i)
+            q = self._q(state_action_vec, i)
             q.backward()
 
             # 2.2 Critic step
@@ -96,9 +125,11 @@ class DistributedActorCriticNonLinear(DistributedActorCritic):
             # wtilde[i, :] = self.w[i, :] + grad_w  # [n_phi,]
 
             # 3.3 Actor step
-            adv = self.advantage(phi, varphi, state, actions, i)  # [n_varphi,]
+            adv = self.advantage(
+                state_action_vec, state_vec, state, actions, i
+            )  # [n_varphi,]
             # ksi = self.grad_log_policy(varphi, actions, i)  # [n_varphi,]
-            prob = self._policy(varphi, i)
+            prob = self._policy(state_vec, i)
             log_prob = torch.log(prob[actions[i]])
             log_prob.backward()
             # grad_theta = beta * adv * ksi
@@ -150,7 +181,7 @@ class DistributedActorCriticNonLinear(DistributedActorCritic):
         Parameters:
         -----------
         * phi: np.array<n_phi>
-            critic features
+            state, actions vector
 
         Returns:
         --------
@@ -169,11 +200,12 @@ class DistributedActorCriticNonLinear(DistributedActorCritic):
         Compute policy for state phi and agent i.
         """
         _phi = torch.tensor(phi, dtype=torch.float32).to(self.device)
+        print(_phi.shape)
         predictor = self.predictors[i]
         probs = predictor.actor(_phi)
         return probs
 
-    def policy(self, varphi, i):
+    def policy(self, varphi, i) -> np.ndarray:
         """Computes gibbs distribution / Boltzman policies
 
         Parameters:
@@ -191,7 +223,7 @@ class DistributedActorCriticNonLinear(DistributedActorCritic):
             Stochastic policy
         """
         with torch.no_grad():
-            z = self._policy(varphi, i)[i].cpu().numpy()
+            z = self._policy(varphi, i).cpu().numpy()
 
         return z
 

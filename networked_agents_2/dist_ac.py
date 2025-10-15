@@ -47,7 +47,7 @@ class DistributedActorCritic(object):
         self.n_phi = env.n_phi
         self.n_varphi = env.n_varphi
         self.seed = env.seed
-        assert env.n_actions == 2
+        # assert env.n_actions == 2
 
         # Parameters
         np.random.seed(self.seed)
@@ -106,6 +106,7 @@ class DistributedActorCritic(object):
         * rewards: float<n_agents>
             instantaneous rewards.
         """
+        print(f"{rewards = }")
         self.next_mu = (1 - self.alpha) * self.mu + self.alpha * rewards
 
     def update(self, state, actions, rewards, next_state, next_actions, C):

@@ -61,19 +61,24 @@ def laplacian_weights_matrix(adjacency, fast=True):
 
 
 def adjacency_matrix(n_nodes, n_edges):
-
+    print(f"{n_nodes = }, {n_edges = }")
     full_edge_list = [(i, j) for i in range(n_nodes - 1) for j in range(i + 1, n_nodes)]
 
     n_choices = min(len(full_edge_list), n_edges)
     edge_ids = np.random.choice(len(full_edge_list), replace=False, size=n_choices)
-
-    edge_list = [full_edge_list[i] for i in sorted(edge_ids)]
-
-    data = (np.ones(len(edge_list), dtype=int), zip(*edge_list))
-    print(f"{n_nodes = }")
-    adjacency = csr_matrix(data, dtype=int, shape=(n_nodes, n_nodes)).toarray()
-    adjacency = adjacency + adjacency.T
+    adjacency = np.zeros((n_nodes, n_nodes), dtype=int)
+    for i in edge_ids:
+        u, v = full_edge_list[i]
+        adjacency[u, v] = 1
+        adjacency[v, u] = 1
     return adjacency
+    # edge_list = [full_edge_list[i] for i in sorted(edge_ids)]
+
+    # data = (np.ones(len(edge_list), dtype=int), zip(*edge_list))
+    # print(f"{data = }, {list(data[1]) = }")
+    # adjacency = csr_matrix(data, dtype=int, shape=(n_nodes, n_nodes)).toarray()
+    # adjacency = adjacency + adjacency.T
+    # return adjacency
 
 
 # performs distributed averaging on a simple graph.

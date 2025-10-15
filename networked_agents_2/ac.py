@@ -18,7 +18,7 @@ import torch
 from torch import nn
 
 from environment import Environment
-np.seterr(all='raise')
+np.seterr(all="raise", under="warn")
 
 # Uncoment to run stand alone script.
 import sys

@@ -50,7 +50,14 @@ class Environment(object):
     """Randomly Generated MDP"""
 
     def __init__(
-        self, n_states=20, n_actions=2, n_nodes=20, n_phi=10, n_varphi=5, seed=0
+        self,
+        n_states=20,
+        n_actions=2,
+        n_nodes=20,
+        n_phi=10,
+        n_varphi=5,
+        n_edges=None,
+        seed=0,
     ):
 
         # n_nodes = n_nodes
@@ -60,7 +67,7 @@ class Environment(object):
         self.n_nodes = n_nodes
         self.n_phi = n_phi
         self.n_varphi = n_varphi
-        self.n_edges = 2 * (n_nodes - 1)
+        self.n_edges = n_edges or 2 * (n_nodes - 1)
         self.n_action_space = n_actions**n_nodes
         self.seed = seed
 
@@ -109,9 +116,9 @@ class Environment(object):
                 del self.log[key]
 
     def get_features(self, state, actions):
-        return self.get_phi(state, actions), self.get_varphi(state)
+        return self.get_action_vec(state, actions), self.get_varphi(state)
 
-    def get_phi(self, state, actions):
+    def get_action_vec(self, state, actions):
         # [|n_states||n_actions ** n_nodes|, n_phi]
         return self.PHI[self.get_dim(state, actions), :]
 
@@ -164,24 +171,24 @@ class Environment(object):
         lwe = metropolis_weights_matrix(adj)
         return lwe
 
-    def loop(self, n_steps):
+    def loop(self, n_steps, known_rewards: bool = False):
         self.reset()
         first = True
         for step in tqdm(range(n_steps)):
             done = step == (n_steps - 1)
             if first:
                 r = 0
-                actions = yield self.state, self.get_varphi(self.state)
+                actions = yield self.state, self.get_varphi(self.state), False
             else:
                 r = self.get_rewards(actions)
                 actions = yield self.state, r, done
 
-            if first:
+            if first and known_rewards:
                 # do this one
                 self.log["best_actions"] = self.best_actions.tolist()
                 self.log["best_actions_rewards"] = self.max_team_reward.tolist()
 
-                first = False
+            first = False
             self.log["state"].append(self.state)
             self.log["reward"].append(float(np.mean(r)))
             self.log["actions"].append(bin2dec(actions))
