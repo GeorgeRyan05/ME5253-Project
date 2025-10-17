@@ -116,10 +116,6 @@ def cli():
     args = parser.parse_args()
 
     Path("./data/results").mkdir(exist_ok=True, parents=True)
-    import subprocess
-
-    process = subprocess.run([], capture_output=True, text=True)
-    process.stderr
     results, results_path = main(
         n_runs=args.runs,
         n_processors=args.processors,
