@@ -9,18 +9,17 @@ References:
 Zhang, et al. 2018
 """
 
-from operator import itemgetter
-from functools import lru_cache
-from copy import deepcopy
-from operator import itemgetter
 from collections import defaultdict
+from copy import deepcopy
+from functools import lru_cache
+from operator import itemgetter
 from pathlib import Path
-from consensus import metropolis_weights_matrix
 
-from environment import Environment
 import numpy as np
 
-np.seterr(all="raise")
+from .consensus import metropolis_weights_matrix
+from .environment import Environment
+
 
 # Uncoment to run stand alone script.
 import sys
@@ -106,7 +105,6 @@ class DistributedActorCritic(object):
         * rewards: float<n_agents>
             instantaneous rewards.
         """
-        print(f"{rewards = }")
         self.next_mu = (1 - self.alpha) * self.mu + self.alpha * rewards
 
     def update(self, state, actions, rewards, next_state, next_actions, C):

@@ -1,0 +1,27 @@
+version: 1
+formatters:
+  simple:
+    format: "%(name)s - %(levelname)s [./networked_agents_2/%(filename)s:%(lineno)s - %(funcName)s() ]\n%(message)s"
+handlers:
+  file:
+    class: logging.FileHandler
+    filename: .logs/main.log
+    level: DEBUG
+    formatter: simple
+    mode: w
+  console:
+    class: logging.StreamHandler
+    level: WARNING
+    formatter: simple
+root:
+  level: INFO
+  handlers: [console]
+loggers:
+  __main__:
+    level: DEBUG
+    handlers: [file]
+    propagate: yes
+  networked_agents_2:
+    level: DEBUG
+    handlers: [file]
+    propagate: yes

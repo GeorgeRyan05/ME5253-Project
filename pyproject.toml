@@ -1,5 +1,5 @@
 [project]
-name = "project-main"
+name = "networked-agents-2"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -10,6 +10,7 @@ dependencies = [
     "numpy>=1.21.4",
     "pandas>=1.3.5",
     "pillow>=8.4.0",
+    "pyyaml>=6.0.3",
     "scipy>=1.7.3",
     "seaborn>=0.11.2",
     "statsmodels>=0.13.1",
@@ -17,6 +18,8 @@ dependencies = [
     "tqdm>=4.62.3",
 ]
 
+[tool.setuptools]
+packages = ["networked_agents_2"]
 
 [tool.uv.sources]
 torch = [
@@ -26,3 +29,7 @@ torch = [
 name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 explicit = true
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"

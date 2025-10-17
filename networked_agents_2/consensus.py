@@ -61,7 +61,6 @@ def laplacian_weights_matrix(adjacency, fast=True):
 
 
 def adjacency_matrix(n_nodes, n_edges):
-    print(f"{n_nodes = }, {n_edges = }")
     full_edge_list = [(i, j) for i in range(n_nodes - 1) for j in range(i + 1, n_nodes)]
 
     n_choices = min(len(full_edge_list), n_edges)

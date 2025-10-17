@@ -4,12 +4,36 @@ from pathlib import Path
 from datetime import datetime
 import multiprocessing
 from multiprocessing.pool import Pool
+import logging
+import logging.config
+from yaml import safe_load
+from pathlib import Path
 
 
-from train import train
-from plots import globally_averaged_plot, q_values_plot, advantages_plot
-from plots import delta_plot, mu_plot, pi_plot, log_plot
-from stats import rel_entropy, ks_test
+import numpy as np
+import torch
+
+from networked_agents_2.train import train
+from networked_agents_2.plots import (
+    globally_averaged_plot,
+    q_values_plot,
+    advantages_plot,
+)
+from networked_agents_2.plots import delta_plot, mu_plot, pi_plot, log_plot
+from networked_agents_2.stats import rel_entropy, ks_test
+
+torch.manual_seed(0)
+
+Path(".logs").mkdir(exist_ok=True)
+logging.config.dictConfig(config=safe_load(Path("./logging.yaml").open()))
+logger = logging.getLogger(__name__)
+
+
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, np.ndarray):
+            return o.tolist()
+        return super().default(o)
 
 
 def fn(args):
@@ -18,7 +42,10 @@ def fn(args):
 
 # helps transform a list of dictionaries into a pair of lists
 def gn(adict, pos):
-    return (adict["centralized"][pos], adict["distributed"][pos])
+    return (adict["distributed"][pos], adict["distributed"][pos])
+
+
+# TODO: change back to centralized (the 1st one)
 
 
 def unwrap(alist, pos):
@@ -26,7 +53,6 @@ def unwrap(alist, pos):
 
 
 def main(n_runs, n_processors, n_steps, n_episodes):
-
     results_path = Path("data/results")
     results_path.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%Y-%m-%d %H_%M_%S.%f")
@@ -34,7 +60,6 @@ def main(n_runs, n_processors, n_steps, n_episodes):
 
     base_args = (n_steps, n_episodes)
     train_args = [base_args + (n_run * 10,) for n_run in range(n_runs)]
-    print(train_args)
 
     if n_processors > 1:
         pool = Pool(n_processors)
@@ -52,7 +77,7 @@ def main(n_runs, n_processors, n_steps, n_episodes):
 
     # get globally averaged return
     with (results_path / "results.json").open("w") as f:
-        json.dump(results, f)
+        json.dump(results, f, cls=NumpyEncoder, indent=2)
     centralized_J, decentralized_J = unwrap(results, "J")
     globally_averaged_plot(centralized_J, decentralized_J, results_path)
 
@@ -68,18 +93,19 @@ def main(n_runs, n_processors, n_steps, n_episodes):
     centralized_mu, decentralized_mu = unwrap(results, "mu")
     mu_plot(centralized_mu, decentralized_mu, results_path)
 
-    centralized_pi, decentralized_pi = unwrap(results, "pi")
-    pi_plot(centralized_pi, decentralized_pi, results_path)
+    # TODO: get for non-linear
+    # centralized_pi, decentralized_pi = unwrap(results, "pi")
+    # pi_plot(centralized_pi, decentralized_pi, results_path)
 
     centralized_log, decentralized_log = unwrap(results, "data")
     log_plot(centralized_log[0], decentralized_log[0], results_path)
 
-    centralized_jp, decentralized_jp = unwrap(results, "joint_policy")
-    rel_entropy(centralized_jp[0], decentralized_jp[0])
-    ks_test(centralized_jp[0], decentralized_jp[0])
+    # centralized_jp, decentralized_jp = unwrap(results, "joint_policy")
+    # rel_entropy(centralized_jp[0], decentralized_jp[0])
+    # ks_test(centralized_jp[0], decentralized_jp[0])
 
     return results, str(results_path)
 
 
 if __name__ == "__main__":
-    results, results_path = main(1, 1, 1200, 1)
+    results, results_path = main(1, 1, 300, 1)

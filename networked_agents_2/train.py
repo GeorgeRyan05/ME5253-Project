@@ -1,19 +1,25 @@
-from copy import deepcopy
 import json
+import logging
 from collections import defaultdict
 from collections.abc import Iterable
+from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
 from tqdm import trange
 
-# from environment import Environment
-from environment import SemiDeterministicEnvironment
-from cooperative_environment import CooperativeNavigationEnvironment
-from dist_ac import DistributedActorCritic
-from ac import ActorCritic
-from ac_non_linear import NonLinearActorCritic
-from dist_ac_non_linear import DistributedActorCriticNonLinear
+from .ac import ActorCritic
+from .ac_non_linear import NonLinearActorCritic
+from .cooperative_environment import CooperativeNavigationEnvironment
+from .dist_ac import DistributedActorCritic
+from .dist_ac_non_linear import DistributedActorCriticNonLinear
+from .environment import SemiDeterministicEnvironment
+from .environment import Environment
+
+
+np.seterr(all="raise", under="warn")
+
+logger = logging.getLogger(__name__)
 
 UPDATE_CENTRALIZED_KEYS = [
     "features",
@@ -24,7 +30,7 @@ UPDATE_CENTRALIZED_KEYS = [
 ]
 UPDATE_DISTRIBUTED_KEYS = UPDATE_CENTRALIZED_KEYS + ["consensus"]
 LOG_KEYS = ["w", "grad_w", "theta", "grad_theta", "scores"]
-
+LOG_KEYS_NON_LINEAR = ["scores"]
 
 def get_agent(distributed=True, non_linear=False):
     if non_linear:
@@ -45,7 +51,11 @@ def dictfy_tr(tr, distributed):
 
 
 def dictfy_log(log):
-    return dict(zip(LOG_KEYS, log))
+    return (
+        dict(zip(LOG_KEYS, log))
+        if len(log) == len(LOG_KEYS)
+        else dict(zip(LOG_KEYS_NON_LINEAR, log))
+    )
 
 
 # turn contents -- possibly numpy arrays into lists.
@@ -92,20 +102,30 @@ def train(n_steps, n_episodes, seed):
 
     # Mini problem
     n_states = 20
-    n_actions = 2
-    n_nodes = 2
+    n_actions = 5
+    n_nodes = 3
     n_phi = 10
     n_varphi = 5
     non_linear = True
     variable_graph = True
+    # connectivity ratio is 4/N => 2E/N(N-1) = 4/N
+    n_edges = 2 * (n_nodes - 1)
     # seed = 0
 
     # Instantiate environment
     if non_linear:
         env = CooperativeNavigationEnvironment(
             n_nodes=n_nodes,
+            n_edges=n_edges,
             seed=seed,
         )
+        logger.info(f"""
+Cooperative Navigation (Non-Linear):
+{env.landmark_positions = }
+{env.targets = }
+{env.agent_positions = }
+""")
+
     else:
         env = SemiDeterministicEnvironment(
             n_states=n_states,
@@ -122,7 +142,7 @@ def train(n_steps, n_episodes, seed):
     # varphi_2 = env.get_varphi(2)  # arbitrary
     # TODO: Change environment to non-deterministic
     if non_linear:
-        print("Best action for every state unavailable")
+        logger.info("Best action for every state unavailable")
     else:
         print("Best action for every state")
         print(np.arange(n_states))
@@ -130,7 +150,8 @@ def train(n_steps, n_episodes, seed):
         print(env.max_team_reward)
 
     results = {}
-    for distributed in (True, False):
+    for distributed in (True, True):
+        # TODO: change back to False (1st one)
         # system of agents
         agent = get_agent(distributed=distributed, non_linear=non_linear)(env)
         globally_averaged_return = []
@@ -140,16 +161,28 @@ def train(n_steps, n_episodes, seed):
         agents_deltas = []
         agents_transitions = []
         agents_logs = []
+        if non_linear:
+            action = env.get_action_vec(env.state, [0] * n_nodes)[0]  # arbitrary
+            logger.info(f"{(env.state, action) = }")
+            phi_00 = np.concat((env.state, action))  # arbitrary
+        else:
+            phi_00 = env.get_phi(0, [0] * n_nodes)  # arbitrary
 
         for episode in trange(n_episodes, position=0):
             gen = env.loop(n_steps)
             try:
+                step = 0
+                logger.debug("Step 0")
                 state, varphi, done = next(gen)
                 actions = agent.act(varphi)
                 # phi = env.get_phi(state, actions)
                 # features = (phi, varphi)
                 # first = False
                 while True:
+                    # if step == 5:
+                    #     break
+                    step += 1
+                    logger.debug(f"Step {step}")
                     # action_val = agent.get_q(varphi, 0)
                     next_state, next_rewards, done = gen.send(actions)
                     # triggers environment step, updating state and everything
@@ -171,7 +204,9 @@ def train(n_steps, n_episodes, seed):
 
                     globally_averaged_return.append(np.mean(agent.mu))
                     agents_mus.append(agent.mu.tolist())
-                    # agents_q_values.append(agent.get_q(phi_00))
+                    # print(f"{advantages = }, {agent.get_q(phi_00) = }")
+                    # raise KeyboardInterrupt
+                    agents_q_values.append(agent.get_q(phi_00))
                     agents_advantages.append(advantages)
                     agents_deltas.append(deltas)
                     state, actions = next_state, next_actions
@@ -185,14 +220,14 @@ def train(n_steps, n_episodes, seed):
                     "Q": agents_q_values,
                     "delta": agents_deltas,
                     "mu": agents_mus,
-                    "pi": agent.get_pi(varphi_2),
+                    # "pi": agent.get_pi(varphi_2),
                     "data": deepcopy(env.log),
                     "transitions": agents_transitions,
                     "logs": agents_logs,
-                    "joint_policy": get_joint_policy(agent, env),
+                    # "joint_policy": get_joint_policy(agent, env),
                 }
     return results
 
 
 if __name__ == "__main__":
-    train(1000, 1, 0)
+    train(200, 1, 0)

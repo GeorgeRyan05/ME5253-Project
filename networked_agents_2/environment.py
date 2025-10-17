@@ -9,9 +9,9 @@ Zhang, et al. 2018
 Dann, et al. 2014
 """
 
-from operator import itemgetter
-from functools import lru_cache, cached_property
 from collections import defaultdict
+from functools import cached_property, lru_cache
+from operator import itemgetter
 
 import numpy as np
 from numpy.random import uniform
@@ -19,10 +19,10 @@ from scipy.sparse import csr_matrix
 from tqdm import tqdm
 
 # from consensus import laplacian_weights_matrix
-from consensus import metropolis_weights_matrix
-from consensus import adjacency_matrix
+from .consensus import adjacency_matrix, metropolis_weights_matrix
 
 np.random.seed(0)
+
 
 # x is a list of zeros and ones.
 def bin2dec(x):
@@ -59,7 +59,6 @@ class Environment(object):
         n_edges=None,
         seed=0,
     ):
-
         # n_nodes = n_nodes
         # default: 4 / n_nodes <--> n_edges = 2 * (n_nodes - 1)
         self.n_states = n_states
@@ -128,6 +127,7 @@ class Environment(object):
 
     def get_rewards(self, actions):
         # [|n_states||n_actions ** n_nodes|, n_nodes]
+        raise RuntimeError("Don't use this environment")
         r = self.R[self.get_dim(self.state, actions), :]
         u = uniform(low=-0.5, high=0.5, size=self.n_nodes)
         return r + u
@@ -179,16 +179,16 @@ class Environment(object):
             if first:
                 r = 0
                 actions = yield self.state, self.get_varphi(self.state), False
+                first = False
+                continue
             else:
                 r = self.get_rewards(actions)
                 actions = yield self.state, r, done
-
             if first and known_rewards:
                 # do this one
                 self.log["best_actions"] = self.best_actions.tolist()
                 self.log["best_actions_rewards"] = self.max_team_reward.tolist()
 
-            first = False
             self.log["state"].append(self.state)
             self.log["reward"].append(float(np.mean(r)))
             self.log["actions"].append(bin2dec(actions))
@@ -297,8 +297,8 @@ if __name__ == "__main__":
     n_action_schema = 2**n_nodes
 
     print(f"current state: {state}")
-    print(env.P.shape)
-    print(env.P)
+    # print(env.P.shape)
+    # print(env.P)
     assert env.P.shape == (n_states * n_action_schema, n_states)
 
     print(f"{actions} -> {bin2dec(list(actions))}")

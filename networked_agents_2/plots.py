@@ -204,8 +204,9 @@ def q_values_plot(centralized_Q, decentralized_Q, results_path=None):
     if results_path is None:
         results_path = Path("data/results")
     q_values = np.array(decentralized_Q)
-
-    n_runs, n_steps, n_agents = q_values.shape
+    # print(f"{q_values.shape = }")
+    # q_values.shape = (1, 299, 3, 1)
+    n_runs, n_steps, n_agents = q_values.shape 
 
     # draw tree agents
     n_choice = min(n_agents, 3)
@@ -225,15 +226,15 @@ def q_values_plot(centralized_Q, decentralized_Q, results_path=None):
     lowess = sm.nonparametric.lowess(np.average(Y, axis=1), X, frac=0.10)
     plt.plot(X, lowess[:, 1], c=SMOOTHING_CURVE_COLOR, label=f"average {labels}")
 
-    plt.plot(
-        X,
-        np.average(centralized_Q, axis=0),
-        c=CENTRALIZED_AGENT_COLOR,
-        label="Centralized",
-    )
-    plt.xlabel("Timesteps")
-    plt.ylabel("Relative Q-values")
-    plt.legend(loc="upper right")
+    # plt.plot(
+    #     X,
+    #     np.average(centralized_Q, axis=0),
+    #     c=CENTRALIZED_AGENT_COLOR,
+    #     label="Centralized",
+    # )
+    # plt.xlabel("Timesteps")
+    # plt.ylabel("Relative Q-values")
+    # plt.legend(loc="upper right")
 
     file_name = (results_path / "q_values.pdf").as_posix()
     plt.savefig(file_name, bbox_inches="tight", pad_inches=0)
@@ -256,11 +257,12 @@ def log_plot(centralized_log, distributed_log, results_path=None):
     best_actions_rewards_plot(best_actions_rewards, results_path)
     # states plot
 
-    centralized_states, distributed_states = (
-        centralized_log["state"],
-        distributed_log["state"],
-    )
-    states_plot(centralized_states, distributed_states, results_path)
+    # centralized_states, distributed_states = (
+    #     centralized_log["state"],
+    #     distributed_log["state"],
+    # )
+    # TODO: re-enable for linear alone
+    # states_plot(centralized_states, distributed_states, results_path)
     # actions plot
 
     centralized_actions, distributed_actions = (

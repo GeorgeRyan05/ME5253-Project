@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from ac import ActorCritic
+from .ac import ActorCritic
 
 
 class NonLinearActorCritic(ActorCritic):
@@ -83,7 +83,7 @@ class NonLinearActorCritic(ActorCritic):
         for i in range(self.n_nodes):
             prob = self._policy(varphi, i)
             # ksi = self.grad_log_policy(varphi, actions, i)  # [n_phi]
-            print(prob.shape)
+            # print(prob.shape)
             log_prob = torch.log(prob[actions[i]])
             log_prob.backward()
         # Will accumulate gradients
@@ -98,7 +98,7 @@ class NonLinearActorCritic(ActorCritic):
     def _policy(self, varphi, i) -> torch.Tensor:
         # varphi is the state vector, in this case
         # [n_actions, n_nodes, n_varphi]
-        print(f"{varphi[:, i, :].shape = }")
+        # print(f"{varphi[:, i, :].shape = }")
         _varphi = torch.tensor(varphi[:, i, :], dtype=torch.float32, device=self.device)
         probs = self.actor(_varphi)
         return probs
