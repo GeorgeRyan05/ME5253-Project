@@ -167,7 +167,7 @@ class DistributedActorCriticNonLinear(DistributedActorCritic):
         #         param.data += alpha * deltas[i] * param.grad
         #     w_tilde_params.append([param.data.clone() for param in critic.parameters()])
         # new_params = []
-        # C = np.eye((self.n_agents))
+        C = np.eye((self.n_agents))
         for i in range(self.n_agents):
             # actor = self.predictors[i].actor
             critic = self.predictors[i].critic
